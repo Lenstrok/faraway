@@ -20,8 +20,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const dbDriverName = "postgres"
-
 // main
 // Swagger spec:
 // @title       Vio Challenge Server

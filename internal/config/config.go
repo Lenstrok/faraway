@@ -8,22 +8,15 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-type MigrationConfig struct {
-	DB DB
+type ClientConfig struct {
 }
 
 type ServerConfig struct {
-	DB     DB
 	Server Server
 }
 
-type ParserConfig struct {
-	DB     DB
-	Parser Parser
-}
-
-func NewConfig[T ServerConfig | ParserConfig | MigrationConfig](cfg *T) error {
-	if err := godotenv.Load("env_example"); err != nil {
+func NewConfig[T ServerConfig | ClientConfig](cfg *T) error {
+	if err := godotenv.Load("env.example"); err != nil {
 		log.Printf("Try to get env without .env file: %v", err)
 	}
 

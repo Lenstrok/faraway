@@ -2,45 +2,30 @@ package main
 
 import (
 	"context"
-	"faraway/internal/adapter/controller"
+	"faraway/internal/adapter/handler"
 	"faraway/internal/config"
+	"faraway/internal/infra"
 	"faraway/internal/service"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"log"
-	"net"
 )
 
+// TODO add desc that is good to add API to make a request
 func main() {
 	ctx := context.Background()
 
-	cfg := config.ServerConfig{}
+	cfg := config.ClientConfig{}
 
 	if err := config.NewConfig(&cfg); err != nil {
 		log.Fatalf("Failed to get config: %v", err)
 	}
 
-	powService, err := service.NewPOWService(10) // todo to cfg?
-	if err != nil {
-		log.Fatalf("Failed to make pow service: %v", err)
-	}
+	powService := service.NewPOWService(cfg.POW)
+	netHandler := handler.NewClientNet(powService)
+	dialer := infra.NewDialer(netHandler, cfg.Server)
 
-	dialerHandler := controller.NewDialer(powService) // todo rename package
-
-	// todo describe about moving to the infra level
-	var dialer net.Dialer
-	conn, err := dialer.DialContext(ctx, "tcp", ":8080") // todo const/conf
-	if err != nil {
-		log.Fatalf("Failed to dial conn: %v", err)
-	}
-
-	defer func() {
-		if closeErr := conn.Close(); closeErr != nil {
-			log.Printf("Failed to close listener: %v", closeErr)
-		}
-	}()
-
-	quote, err := dialerHandler.GetQuote(ctx, conn)
+	quote, err := dialer.GetQuote(ctx)
 	if err != nil {
 		log.Printf("Failed to handle quote request: %v", err)
 	}
@@ -50,6 +35,5 @@ func main() {
 	// todo добавить асинхрон или упомянуть
 	// todo добавить шатдаун
 
-	// todo add more logs
-	log.Printf("Server stopped.")
+	// todo add more logs?
 }

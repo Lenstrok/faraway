@@ -1,4 +1,4 @@
-package controller
+package handler
 
 import (
 	"context"
@@ -8,21 +8,21 @@ import (
 	"net"
 )
 
-// todo add interface
+type ClientNetI interface {
+	GetQuote(ctx context.Context, conn net.Conn) ([]byte, error)
+}
 
 // todo add docs + split on server & client?
-type Dialer struct {
+type ClientNet struct {
 	powService service.POWServiceI
 }
 
-func NewDialer(powService service.POWServiceI) *Dialer {
-	return &Dialer{
-		powService: powService,
-	}
+func NewClientNet(powService service.POWServiceI) *ClientNet {
+	return &ClientNet{powService: powService}
 }
 
 // todo add docs + test + use ctx (add deadline)
-func (h Dialer) GetQuote(ctx context.Context, conn net.Conn) ([]byte, error) {
+func (cn ClientNet) GetQuote(ctx context.Context, conn net.Conn) ([]byte, error) {
 	defer func() {
 		if closeErr := conn.Close(); closeErr != nil {
 			log.Printf("Failed to close conn: %v", closeErr) // todo заменить на zero log or just mark it thought?
@@ -34,7 +34,7 @@ func (h Dialer) GetQuote(ctx context.Context, conn net.Conn) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read challenge: %w", err)
 	}
 
-	solution := h.powService.Solve(challenge)
+	solution := cn.powService.Solve(challenge)
 	if err = WriteMessage(conn, solution); err != nil {
 		return nil, fmt.Errorf("failed to write solution: %w", err)
 	}

@@ -9,9 +9,13 @@ import (
 )
 
 type ClientConfig struct {
+	POW    POW
+	Server Server
 }
 
 type ServerConfig struct {
+	POW    POW
+	Quotes Quotes
 	Server Server
 }
 

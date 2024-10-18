@@ -5,18 +5,13 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"faraway/internal/config"
 	"faraway/internal/domain"
 	"fmt"
 	"math"
 )
 
 // todo rename params + refactor + tests
-
-// TODO change + to cfg
-const (
-	tokenSize = 16
-	nonceSize = 8
-)
 
 type POWServiceI interface {
 	// todo rename methods
@@ -27,24 +22,18 @@ type POWServiceI interface {
 
 // todo update POW represents a proof of work algorithm implementation based on hashcash
 type POWService struct {
-	complexity uint64
+	cfg config.POW
 }
 
 // TODO
-func NewPOWService(complexity uint64) (*POWService, error) {
-	const maxTargetBits = 24 // todo cfg?
-
-	if complexity < 1 || complexity > maxTargetBits { // todo to cfg?
-		return nil, fmt.Errorf("invalid complexity value: %w", domain.ErrInvalid)
-	}
-
-	return &POWService{complexity: complexity}, nil
+func NewPOWService(cfg config.POW) *POWService {
+	return &POWService{cfg: cfg}
 }
 
 // todo docs
 func (p *POWService) Challenge() []byte {
-	buf := make([]byte, tokenSize)
-	target := uint64(1) << (64 - p.complexity)
+	buf := make([]byte, p.cfg.TokenSize)
+	target := uint64(1) << (64 - p.cfg.Complexity)
 
 	binary.BigEndian.PutUint64(buf[:8], target)
 	_, _ = rand.Read(buf[8:])
@@ -54,14 +43,6 @@ func (p *POWService) Challenge() []byte {
 
 // todo docs
 func (p *POWService) Verify(challenge, solution []byte) error {
-	if len(challenge) != tokenSize {
-		return fmt.Errorf("invalid challenge size: %w", domain.ErrInvalid)
-	}
-
-	if len(solution) != nonceSize {
-		return fmt.Errorf("invalid solution size: %w", domain.ErrInvalid)
-	}
-
 	if !verify(challenge, solution) {
 		return fmt.Errorf("invalid solution: %w", domain.ErrInvalid)
 	}
@@ -71,11 +52,11 @@ func (p *POWService) Verify(challenge, solution []byte) error {
 
 // TODO docs + test
 func (p *POWService) Solve(token []byte) []byte {
-	if len(token) != tokenSize {
+	if len(token) != p.cfg.TokenSize {
 		return nil
 	}
 
-	nonce := make([]byte, nonceSize)
+	nonce := make([]byte, p.cfg.NonceSize)
 
 	for i := uint64(0); i < math.MaxUint64; i++ {
 		binary.BigEndian.PutUint64(nonce, i)

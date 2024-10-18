@@ -7,8 +7,6 @@ import (
 	"faraway/internal/config"
 	"faraway/internal/infra"
 	"faraway/internal/service"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/lib/pq"
 	"log"
 	"os"
 	"os/signal"

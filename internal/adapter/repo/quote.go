@@ -11,7 +11,8 @@ type QuoteRepo struct {
 	quotes []domain.Quote
 }
 
-// TODO add doc + test + describe json file fmt
+// NewQuoteRepo filled with collection.
+// Data in JSON Format: `{"quotes": [{"text": "magic", "author": "mage"}, ..]}`
 func NewQuoteRepo(quotesBytes []byte) (*QuoteRepo, error) {
 	var book struct {
 		Quotes []domain.Quote `json:"quotes"`
@@ -24,7 +25,8 @@ func NewQuoteRepo(quotesBytes []byte) (*QuoteRepo, error) {
 	return &QuoteRepo{quotes: book.Quotes}, nil
 }
 
-// TODO add doc + test
+// GetRand quote from the collection.
+// Context may be useful to handling DB requests.
 func (qr QuoteRepo) GetRand(_ context.Context) domain.Quote {
 	return qr.quotes[rand.Intn(len(qr.quotes))]
 }

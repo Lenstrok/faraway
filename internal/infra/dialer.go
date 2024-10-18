@@ -2,6 +2,7 @@ package infra
 
 import (
 	"context"
+	"errors"
 	"faraway/internal/adapter/handler"
 	"faraway/internal/config"
 	"fmt"
@@ -24,6 +25,7 @@ func NewDialer(handler handler.ClientNetI, cfg config.Server) *Dialer {
 	}
 }
 
+// GetQuote from a server by tcp network.
 func (d Dialer) GetQuote(ctx context.Context) (string, error) {
 	const network = "tcp"
 
@@ -33,8 +35,8 @@ func (d Dialer) GetQuote(ctx context.Context) (string, error) {
 	}
 
 	defer func() {
-		if closeErr := conn.Close(); closeErr != nil {
-			log.Printf("Failed to close listener: %v", closeErr)
+		if closeErr := conn.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			log.Printf("Failed to close dialer: %v", closeErr)
 		}
 	}()
 

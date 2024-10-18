@@ -2,9 +2,10 @@ package repo
 
 import (
 	"faraway/internal/domain"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_NewQuoteRepo_Ok(t *testing.T) {
@@ -16,12 +17,12 @@ func Test_NewQuoteRepo_Ok(t *testing.T) {
 		{
 			name:   "happy path",
 			text:   `{"quotes": [{"text":"wisdom","author":"wizard"},{"text":"magic","author":"mage"}]}`,
-			quotes: []domain.Quote{{"wisdom", "wizard"}, {"magic", "mage"}},
+			quotes: []domain.Quote{{Text: "wisdom", Author: "wizard"}, {Text: "magic", Author: "mage"}},
 		},
 		{
 			name:   "single quote",
 			text:   `{"quotes": [{"text":"wisdom","author":"wizard"}]}`,
-			quotes: []domain.Quote{{"wisdom", "wizard"}},
+			quotes: []domain.Quote{{Text: "wisdom", Author: "wizard"}},
 		},
 		{
 			name:   "empty list",

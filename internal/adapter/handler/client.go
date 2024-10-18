@@ -4,7 +4,6 @@ import (
 	"context"
 	"faraway/internal/service"
 	"fmt"
-	"log"
 	"net"
 )
 
@@ -12,7 +11,8 @@ type ClientNetI interface {
 	GetQuote(ctx context.Context, conn net.Conn) ([]byte, error)
 }
 
-// todo add docs + split on server & client?
+// ClientNet wrapper on TCP client.
+// Split network handling & service logic.
 type ClientNet struct {
 	powService service.POWServiceI
 }
@@ -21,14 +21,9 @@ func NewClientNet(powService service.POWServiceI) *ClientNet {
 	return &ClientNet{powService: powService}
 }
 
-// todo add docs + test + use ctx (add deadline)
-func (cn ClientNet) GetQuote(ctx context.Context, conn net.Conn) ([]byte, error) {
-	defer func() {
-		if closeErr := conn.Close(); closeErr != nil {
-			log.Printf("Failed to close conn: %v", closeErr) // todo заменить на zero log or just mark it thought?
-		}
-	}()
-
+// GetQuote from a server by conn.
+// Before getting a quote we need to solve POW challenge.
+func (cn ClientNet) GetQuote(_ context.Context, conn net.Conn) ([]byte, error) {
 	challenge, err := ReadMessage(conn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read challenge: %w", err)

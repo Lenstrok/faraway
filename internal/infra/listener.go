@@ -21,6 +21,7 @@ type Listener struct {
 	cancelFn context.CancelFunc
 }
 
+// NewListener with tcp network.
 func NewListener(handler handler.ServerNetI, cfg config.Server) (*Listener, error) {
 	const network = "tcp"
 
@@ -37,6 +38,8 @@ func NewListener(handler handler.ServerNetI, cfg config.Server) (*Listener, erro
 	}, nil
 }
 
+// Start to accept requests & handle them concurrently.
+// May be stopped by calling Stop method.
 func (l *Listener) Start(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	l.cancelFn = cancel
@@ -55,12 +58,19 @@ func (l *Listener) Start(ctx context.Context) {
 				continue
 			}
 
+			log.Printf("Listener accept.")
+
 			_ = conn.SetDeadline(time.Now().Add(l.cfg.ConnTimeout))
 
 			l.wg.Add(1)
 
 			go func() {
 				defer l.wg.Done()
+				defer func() {
+					if closeErr := conn.Close(); closeErr != nil {
+						log.Printf("Failed to close conn: %v", closeErr)
+					}
+				}()
 
 				if handleErr := l.handler.HandleQuoteReq(ctx, conn); handleErr != nil {
 					log.Printf("Failed to handle quote request: %v", handleErr)
@@ -76,6 +86,8 @@ func (l *Listener) Start(ctx context.Context) {
 	}
 }
 
+// Stop the listener.
+// Method is blocked until all goroutines stopped.
 func (l *Listener) Stop() {
 	l.cancelFn()
 

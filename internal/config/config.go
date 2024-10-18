@@ -11,6 +11,8 @@ import (
 type ClientConfig struct {
 	POW    POW
 	Server Server
+
+	NumberOfQuotes int `envconfig:"CLIENT_NUMBER_OF_QUOTES" default:"5"`
 }
 
 type ServerConfig struct {

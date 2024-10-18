@@ -8,7 +8,7 @@ type Quote struct {
 }
 
 func (q Quote) String() string {
-	return fmt.Sprintf("text: %s, author: %s", q.Text, q.Author)
+	return fmt.Sprintf("%q by %s", q.Text, q.Author)
 }
 
 func (q Quote) Bytes() []byte {

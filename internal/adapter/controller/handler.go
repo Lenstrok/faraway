@@ -32,20 +32,20 @@ func (h Handler) HandleQuoteReq(ctx context.Context, conn net.Conn) error {
 	}()
 
 	challenge := h.powService.Challenge()
-	if _, err := conn.Write(challenge); err != nil {
+	if err := WriteMessage(conn, challenge); err != nil {
 		return fmt.Errorf("failed to write challenge: %w", err)
 	}
 
-	var solution []byte
-	if _, err := conn.Read(solution); err != nil {
+	solution, err := ReadMessage(conn)
+	if err != nil {
 		return fmt.Errorf("failed to read solution: %w", err)
 	}
 
-	if err := h.powService.Verify(challenge, solution); err != nil {
-		return fmt.Errorf("invalid solution: %w", err)
+	if err = h.powService.Verify(challenge, solution); err != nil {
+		return fmt.Errorf("failed to verify: %w", err)
 	}
 
-	if _, err := conn.Write(h.quoteService.GetRand(ctx).Bytes()); err != nil {
+	if err = WriteMessage(conn, h.quoteService.GetRand(ctx).Bytes()); err != nil {
 		return fmt.Errorf("failed to write quote: %w", err)
 	}
 

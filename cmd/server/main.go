@@ -2,79 +2,71 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-
-	v1 "vio_coding_challenge/internal/adapter/controller/v1"
-	"vio_coding_challenge/internal/adapter/repo"
-	"vio_coding_challenge/internal/config"
-	"vio_coding_challenge/internal/service"
-
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
+	"faraway/internal/adapter/controller"
+	"faraway/internal/adapter/repo"
+	"faraway/internal/config"
+	"faraway/internal/service"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"log"
+	"net"
+	"os"
 )
 
-// main
-// Swagger spec:
-// @title       Vio Challenge Server
-// @description Here we handle Geolocation!
-// @version     1.0
-// @BasePath    /
 func main() {
 	ctx := context.Background()
 
 	cfg := config.ServerConfig{}
 
-	err := config.NewConfig(&cfg)
-	if err != nil {
+	if err := config.NewConfig(&cfg); err != nil {
 		log.Fatalf("Failed to get config: %v", err)
 	}
 
-	// For production run we should add lifetime & conn pool size.
-	db, err := sqlx.Connect(dbDriverName, cfg.DB.GetDSN())
+	quotesBytes, err := os.ReadFile("internal/config/quotes.json") // todo to conf?
 	if err != nil {
-		log.Fatalf("Failed to connect to DB: %v", err)
+		log.Fatalf("Failed to read file with quotes: %v", err)
 	}
 
-	geoRepo := repo.NewGeoRepo(db)
-	geoService := service.NewGeoService(geoRepo, validator.New(validator.WithRequiredStructEnabled()))
-	geoCtrl := v1.NewGeoCtrl(geoService)
-
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.Default()
-
-	v1.AddRoutes(router, geoCtrl)
-
-	server := &http.Server{
-		Handler:           router,
-		Addr:              ":" + cfg.Server.Port,
-		ReadTimeout:       cfg.Server.Timeout,
-		ReadHeaderTimeout: cfg.Server.Timeout,
-		WriteTimeout:      cfg.Server.Timeout,
+	quoteRepo, err := repo.NewQuoteRepo(quotesBytes)
+	if err != nil {
+		log.Fatalf("Failed to make quote repo: %v", err)
 	}
 
-	go func() {
-		_ = server.ListenAndServe()
+	quoteService := service.NewQuoteService(quoteRepo)
+	powService, err := service.NewPOWService(10) // todo to cfg?
+	if err != nil {
+		log.Fatalf("Failed to make pow service: %v", err)
+	}
+
+	handler := controller.NewHandler(powService, quoteService)
+
+	// todo describe about moving to the infra level
+	listener, err := net.Listen("tcp", ":8080") // todo const/conf
+	if err != nil {
+		log.Fatalf("net listen error: %v\n", err)
+	}
+
+	defer func() {
+		if closeErr := listener.Close(); closeErr != nil {
+			log.Printf("Failed to close listener: %v", closeErr)
+		}
 	}()
 
-	log.Printf("Server started.")
+	// todo добавить асинхрон или упомянуть
+	// todo добавить шатдаун
+	for {
+		conn, AcceptErr := listener.Accept()
+		if AcceptErr != nil {
+			log.Fatalf("accept connection error: %v\n", AcceptErr)
+		}
 
-	// Shutdown waiting signal
-	interruptCh := make(chan os.Signal, 1)
-	signal.Notify(interruptCh, os.Interrupt, syscall.SIGTERM)
-
-	log.Printf("Shutdown signal '%v' received.", <-interruptCh)
-	close(interruptCh)
-
-	if err = server.Shutdown(ctx); err != nil {
-		log.Printf("Failed to stop server: %v", err)
+		go func() {
+			if handleErr := handler.HandleQuoteReq(ctx, conn); handleErr != nil {
+				log.Printf("Failed to handle quote request: %v", handleErr)
+			}
+		}()
 	}
 
+	// todo add more logs
 	log.Printf("Server stopped.")
 }

@@ -26,23 +26,23 @@ type POWServiceI interface {
 }
 
 // todo update POW represents a proof of work algorithm implementation based on hashcash
-type POW struct {
+type POWService struct {
 	complexity uint64
 }
 
 // TODO
-func NewPOW(complexity uint64) (*POW, error) {
+func NewPOWService(complexity uint64) (*POWService, error) {
 	const maxTargetBits = 24 // todo cfg?
 
-	if complexity < 1 || complexity > maxTargetBits {
+	if complexity < 1 || complexity > maxTargetBits { // todo to cfg?
 		return nil, fmt.Errorf("invalid complexity value: %w", domain.ErrInvalid)
 	}
 
-	return &POW{complexity: complexity}, nil
+	return &POWService{complexity: complexity}, nil
 }
 
 // todo docs
-func (p *POW) Challenge() []byte {
+func (p *POWService) Challenge() []byte {
 	buf := make([]byte, tokenSize)
 	target := uint64(1) << (64 - p.complexity)
 
@@ -53,7 +53,7 @@ func (p *POW) Challenge() []byte {
 }
 
 // todo docs
-func (p *POW) Verify(challenge, solution []byte) error {
+func (p *POWService) Verify(challenge, solution []byte) error {
 	if len(challenge) != tokenSize {
 		return fmt.Errorf("invalid challenge size: %w", domain.ErrInvalid)
 	}
@@ -70,7 +70,7 @@ func (p *POW) Verify(challenge, solution []byte) error {
 }
 
 // TODO docs + test
-func (p *POW) Solve(token []byte) []byte {
+func (p *POWService) Solve(token []byte) []byte {
 	if len(token) != tokenSize {
 		return nil
 	}
